@@ -1,4 +1,5 @@
 import pygame
+import os
 from leaderboard import Leaderboard
 
 WHITE  = (255, 255, 255)
@@ -13,9 +14,11 @@ class Menu:
     def __init__(self, screen: pygame.Surface, clock: pygame.time.Clock):
         self.screen = screen
         self.clock  = clock
-        self.font_big   = pygame.font.SysFont('sans', 48, bold=True)
-        self.font_mid   = pygame.font.SysFont('sans', 32)
-        self.font_small = pygame.font.SysFont('sans', 22)
+        BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+        FONT = os.path.join(BASE_DIR, "fonts", "Roboto-Regular.ttf")
+        self.font_big   = pygame.font.Font(FONT, 48)
+        self.font_mid   = pygame.font.Font(FONT, 32)
+        self.font_small = pygame.font.Font(FONT, 22)
         self.leaderboard = Leaderboard()
 
     # ── helpers ──────────────────────────────────────────────────────────────
