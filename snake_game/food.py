@@ -1,15 +1,26 @@
-# food.py
-import pygame
 from random import randint
-from settings import *
+
+GRID_SIZE = 20  # 20x20 ô
 
 class Food:
     def __init__(self):
-        self.position = [0, 0]
-        self.randomize()
+        self.position = self._random_pos()
 
-    def randomize(self):
-        self.position = [randint(0, GRID_WIDTH - 1), randint(0, GRID_HEIGHT - 1)]
+    def _random_pos(self) -> list[int]:
+        return [randint(0, GRID_SIZE - 1), randint(0, GRID_SIZE - 1)]
 
-    def draw(self, screen):
-        pygame.draw.rect(screen, RED, (self.position[0] * BLOCK_SIZE, self.position[1] * BLOCK_SIZE, BLOCK_SIZE, BLOCK_SIZE))
+    def respawn(self, snake_body: list[list[int]]):
+        """UC10: Sinh mồi ở vị trí ngẫu nhiên, tránh thân rắn."""
+        while True:
+            pos = self._random_pos()
+            if pos not in snake_body:
+                self.position = pos
+                return
+
+    @property
+    def x(self) -> int:
+        return self.position[0]
+
+    @property
+    def y(self) -> int:
+        return self.position[1]
