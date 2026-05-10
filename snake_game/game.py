@@ -22,6 +22,11 @@ DIFFICULTY_SPEED = {
     "medium": 0.07,
     "hard":   0.04,
 }
+def resource_path(relative_path):
+    """Lấy đường dẫn đúng cả khi chạy .py lẫn .exe"""
+    if hasattr(sys, '_MEIPASS'):
+        return os.path.join(sys._MEIPASS, relative_path)
+    return os.path.join(os.path.dirname(os.path.abspath(__file__)), relative_path)
 
 class Game:
     def __init__(self, screen: pygame.Surface, clock: pygame.time.Clock,
@@ -303,65 +308,75 @@ class Game:
   
 
     # Main game loop
+    def _handle_mouse(self, event):
+        if event.type == pygame.MOUSEBUTTONDOWN and self.pausing:
+            if hasattr(self, '_go_btn_restart') and self._go_btn_restart.collidepoint(event.pos):
+                self._reset()
+            elif hasattr(self, '_go_btn_menu') and self._go_btn_menu.collidepoint(event.pos):
+                return True 
+        return False
+
+    #  Xử lý phím bấm
+    def _handle_key(self, event):
+        if event.type != pygame.KEYDOWN:
+            return False
+
+        if not self.pausing:
+            if event.key == pygame.K_p:
+                self.paused = not self.paused
+                if not self.paused:
+                    self._pause_alpha = 0
+                    self._pause_tick  = 0
+            if not self.paused:
+                if event.key == pygame.K_UP    and self.direction != "down":
+                    self.next_dir = "up"
+                if event.key == pygame.K_DOWN  and self.direction != "up":
+                    self.next_dir = "down"
+                if event.key == pygame.K_LEFT  and self.direction != "right":
+                    self.next_dir = "left"
+                if event.key == pygame.K_RIGHT and self.direction != "left":
+                    self.next_dir = "right"
+
+        if event.key == pygame.K_SPACE and self.pausing:
+            self._reset()
+        if event.key == pygame.K_ESCAPE:
+            return True   # signal: thoát run()
+
+        return False
+
+    # Bước logic game mỗi step_delay giây
+    def _step(self):
+        self._move()
+        self._check_collision()
+        self._check_eat()
+        if self.pausing:
+            self.new_record = self.scorer.save_if_high_score(self.username, self.score)
+
+    # Main loop
     def run(self):
         while True:
-            dt = self.clock.tick(60) / 1000.0 
+            dt = self.clock.tick(60) / 1000.0
 
             self._draw()
             if self.paused:
                 self._draw_paused()
             elif self.pausing:
                 self._draw_game_over()
-
             pygame.display.flip()
 
-            # Xử lý sự kiện
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     pygame.quit()
                     raise SystemExit
+                if self._handle_mouse(event):
+                    return
+                if self._handle_key(event):
+                    return
 
-                if event.type == pygame.MOUSEBUTTONDOWN and self.pausing:
-                    if hasattr(self, '_go_btn_restart') and self._go_btn_restart.collidepoint(event.pos):
-                        self._reset()
-                    elif hasattr(self, '_go_btn_menu') and self._go_btn_menu.collidepoint(event.pos):
-                        return
-
-                if event.type == pygame.KEYDOWN:
-                    if not self.pausing:
-                        if event.key == pygame.K_p:
-                            self.paused = not self.paused
-                            if not self.paused:          # vừa resume
-                                self._pause_alpha = 0   # fade-in lại lần sau
-                                self._pause_tick  = 0
-                        if not self.paused:
-                            if event.key == pygame.K_UP    and self.direction != "down":
-                                self.next_dir = "up"
-                            if event.key == pygame.K_DOWN  and self.direction != "up":
-                                self.next_dir = "down"
-                            if event.key == pygame.K_LEFT  and self.direction != "right":
-                                self.next_dir = "left"
-                            if event.key == pygame.K_RIGHT and self.direction != "left":
-                                self.next_dir = "right"
-
-                    if event.key == pygame.K_SPACE and self.pausing:
-                        self._reset()
-                    if event.key == pygame.K_ESCAPE:
-                        return  
-
-            # Bước logic theo step_delay
             if not self.pausing and not self.paused:
                 self.step_timer += dt
                 if self.step_timer >= self.step_delay:
                     self.step_timer = 0.0
-                    self._move()
-                    self._check_collision()
-                    self._check_eat()
-
-                    # Lưu điểm khi game over
-                    if self.pausing:
-                        self.new_record = self.scorer.save_if_high_score(
-                            self.username, self.score)
-                        
-    
+                    self._step()
+        
 GRAY = (180, 180, 180)
