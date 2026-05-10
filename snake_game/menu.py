@@ -9,6 +9,11 @@ RED    = (220, 50,  50)
 GRAY   = (180, 180, 180)
 DARK   = (30,  30,  30)
 YELLOW = (255, 220, 0)
+def resource_path(relative_path):
+    """Lấy đường dẫn đúng cả khi chạy .py lẫn .exe"""
+    if hasattr(sys, '_MEIPASS'):
+        return os.path.join(sys._MEIPASS, relative_path)
+    return os.path.join(os.path.dirname(os.path.abspath(__file__)), relative_path)
 
 class Menu:
     def __init__(self, screen: pygame.Surface, clock: pygame.time.Clock):
@@ -54,7 +59,7 @@ class Menu:
 
         while True:
             self.screen.fill(DARK)
-            title = self.font_big.render("🐍  SNAKE GAME", True, GREEN)
+            title = self.font_big.render("SNAKE GAME", True, GREEN)
             self.screen.blit(title, title.get_rect(centerx=300, y=60))
 
             mx, my = pygame.mouse.get_pos()
@@ -111,16 +116,16 @@ class Menu:
 
         while True:
             self.screen.fill(DARK)
-            title = self.font_big.render("🐍  SNAKE", True, GREEN)
+            title = self.font_big.render("SNAKE", True, GREEN)
             self.screen.blit(title, title.get_rect(centerx=300, y=80))
             user_lbl = self.font_small.render(f"Xin chào, {username}!", True, YELLOW)
             self.screen.blit(user_lbl, user_lbl.get_rect(centerx=300, y=155))
 
             mx, my = pygame.mouse.get_pos()
-            self._draw_button("▶  Chơi",         btn_play,  (30, 140, 60),  btn_play.collidepoint(mx, my))
-            self._draw_button("🏆 Bảng xếp hạng", btn_board, (140, 80, 20),  btn_board.collidepoint(mx, my))
-            self._draw_button("🔓 Đăng xuất",     btn_out,   (60, 60, 160),  btn_out.collidepoint(mx, my))
-            self._draw_button("✕  Thoát",         btn_quit,  (160, 30, 30),  btn_quit.collidepoint(mx, my))
+            self._draw_button("Chơi",         btn_play,  (30, 140, 60),  btn_play.collidepoint(mx, my))
+            self._draw_button("Bảng xếp hạng", btn_board, (140, 80, 20),  btn_board.collidepoint(mx, my))
+            self._draw_button("Đăng xuất",     btn_out,   (60, 60, 160),  btn_out.collidepoint(mx, my))
+            self._draw_button("Thoát",         btn_quit,  (160, 30, 30),  btn_quit.collidepoint(mx, my))
 
             pygame.display.flip()
             self.clock.tick(60)
@@ -150,10 +155,10 @@ class Menu:
             self.screen.blit(title, title.get_rect(centerx=300, y=130))
 
             mx, my = pygame.mouse.get_pos()
-            self._draw_button("🟢 Dễ",    btn_easy,   (30, 160, 60),  btn_easy.collidepoint(mx, my))
-            self._draw_button("🟡 Trung bình", btn_medium, (180, 140, 0), btn_medium.collidepoint(mx, my))
-            self._draw_button("🔴 Khó",   btn_hard,   (180, 40, 40),  btn_hard.collidepoint(mx, my))
-            self._draw_button("← Quay lại", btn_back, (70, 70, 70),   btn_back.collidepoint(mx, my))
+            self._draw_button("Dễ",    btn_easy,   (30, 160, 60),  btn_easy.collidepoint(mx, my))
+            self._draw_button("Trung bình", btn_medium, (180, 140, 0), btn_medium.collidepoint(mx, my))
+            self._draw_button("Khó",   btn_hard,   (180, 40, 40),  btn_hard.collidepoint(mx, my))
+            self._draw_button("Quay lại", btn_back, (70, 70, 70),   btn_back.collidepoint(mx, my))
 
             pygame.display.flip()
             self.clock.tick(60)
@@ -176,7 +181,7 @@ class Menu:
 
         while True:
             self.screen.fill(DARK)
-            title = self.font_big.render("🏆 Bảng xếp hạng", True, YELLOW)
+            title = self.font_big.render("Bảng xếp hạng", True, YELLOW)
             self.screen.blit(title, title.get_rect(centerx=300, y=40))
 
             for i, (name, score) in enumerate(records):
