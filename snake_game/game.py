@@ -336,7 +336,9 @@ class Game:
                          (panel_x + panel_w - 24, line_y2), 1)
 
         font_tip = pygame.font.SysFont('sans', 15)
-        tip = font_tip.render("Game is paused", True, (70, 70, 100))
+
+        # SAU Thêm phần hiện tên người chơi
+        tip = font_tip.render(f"Paused  ·  {self.username}", True, (120, 120, 160))
         self.screen.blit(tip, tip.get_rect(centerx=CX, y=panel_y + panel_h - 32))
         
     # game over
