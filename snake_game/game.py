@@ -1,7 +1,7 @@
 import pygame
 import os
 import math
-from random import randint
+import random
 from food import Food
 from score import Score
 
@@ -13,119 +13,251 @@ RED    = (220, 50,  50)
 YELLOW = (255, 220, 0)
 DARK   = (20,  20,  20)
 
-CELL = 30
-GRID = 20
+
+CELL        = 25
+GRID_1P     = 20          # 1-player: 20×20
+GRID_2P     = 28          # 2-player: 28×28  →  700×700 px
+OBSTACLE_COUNT = 8
 
 # tốc độ theo độ khó (giây/bước)
 DIFFICULTY_SPEED = {
-    "easy":   0.12,
-    "medium": 0.07,
-    "hard":   0.04,
+    "easy":   0.14,
+    "medium": 0.08,
+    "hard":   0.045,
 }
+
+# Chiều ngược
+OPPOSITE = {"up": "down", "down": "up", "left": "right", "right": "left"}
+
+# Vector di chuyển
+DELTA = {"right": (1, 0), "left": (-1, 0), "up": (0, -1), "down": (0, 1)}
 def resource_path(relative_path):
     """Lấy đường dẫn đúng cả khi chạy .py lẫn .exe"""
     if hasattr(sys, '_MEIPASS'):
         return os.path.join(sys._MEIPASS, relative_path)
     return os.path.join(os.path.dirname(os.path.abspath(__file__)), relative_path)
 
+
+# ═════════════════════════════════════════════════════════════════════════════
+#  class Snake: lưu trạng thái của rắn
+# ═════════════════════════════════════════════════════════════════════════════
+class Snake:
+    """Đóng gói toàn bộ trạng thái của 1 con rắn."""
+    def __init__(self, start_pos: list[int], start_dir: str,
+                 color_body, color_head):
+        self.body       = [start_pos[:]]
+        self.direction  = start_dir
+        self.next_dir   = start_dir
+        self.score      = 0
+        self.alive      = True
+        self.color_body = color_body
+        self.color_head = color_head
+
+    def commit_direction(self):
+        if self.next_dir != OPPOSITE[self.direction]:
+            self.direction = self.next_dir
+
+    def next_head(self) -> list[int]:
+        dx, dy = DELTA[self.direction]
+        hx, hy = self.body[-1]
+        return [hx + dx, hy + dy]
+
+    def move(self) -> list[int]:
+        self.commit_direction()
+        new_head = self.next_head()
+        self.body.append(new_head)
+        self.body.pop(0)
+        return new_head
+
+    def grow(self):
+        self.body.insert(0, self.body[0][:])
+        self.score += 1
+
+    def occupied(self) -> set[tuple]:
+        return {tuple(s) for s in self.body}
+
+    @property
+    def head(self) -> list[int]:
+        return self.body[-1]
+
+
+# ═════════════════════════════════════════════════════════════════════════════
+#  class Obstacle
+# ═════════════════════════════════════════════════════════════════════════════
+class Obstacle:
+    """Sinh và lưu danh sách ô chướng ngại vật."""
+    COLOR       = (120, 80, 40)
+    COLOR_LIGHT = (160, 110, 60)
+
+    def __init__(self):
+        self.cells: set[tuple] = set()
+
+    def spawn(self, grid: int, count: int, forbidden: set[tuple]):
+        self.cells.clear()
+        attempts = 0
+        while len(self.cells) < count and attempts < count * 50:
+            x = random.randint(1, grid - 2)
+            y = random.randint(1, grid - 2)
+            pos = (x, y)
+            if pos not in forbidden and pos not in self.cells:
+                self.cells.add(pos)
+            attempts += 1
+
+    def draw(self, screen: pygame.Surface, cell: int):
+        for (ox, oy) in self.cells:
+            rect = pygame.Rect(ox * cell + 1, oy * cell + 1,
+                               cell - 2, cell - 2)
+            pygame.draw.rect(screen, self.COLOR, rect, border_radius=3)
+            pygame.draw.rect(screen, self.COLOR_LIGHT,
+                             pygame.Rect(ox * cell + 2, oy * cell + 2,
+                                         cell // 3, cell // 5),
+                             border_radius=2)
+            
 class Game:
+    # khởi tạo game
     def __init__(self, screen: pygame.Surface, clock: pygame.time.Clock,
-                 username: str, difficulty: str):
+                 username: str, difficulty: str, mode: str = "1p"):
         self.screen     = screen
         self.clock      = clock
         self.username   = username
         self.difficulty = difficulty
-        self.step_delay = DIFFICULTY_SPEED.get(difficulty, 0.07)
+        self.mode       = mode
+        self.step_delay = DIFFICULTY_SPEED.get(difficulty, 0.08)
+
+        self.is_2p = (mode == "2p")
+        self.grid  = GRID_2P if self.is_2p else GRID_1P
+
+        # Resize cửa sổ phù hợp lưới + HUD bar 36px
+        pygame.display.set_mode((self.grid * CELL, self.grid * CELL + 36))
+        self.screen = pygame.display.get_surface()
 
         BASE_DIR = os.path.dirname(os.path.abspath(__file__))
         FONT = os.path.join(BASE_DIR, "fonts", "Roboto-Regular.ttf")
-        self.font_small = pygame.font.Font(FONT, 20)
-        self.font_big   = pygame.font.Font(FONT, 42)
-        self.font_mid   = pygame.font.Font(FONT, 28)
+        self.font_small = pygame.font.Font(FONT, 18)
+        self.font_big   = pygame.font.Font(FONT, 40)
+        self.font_mid   = pygame.font.Font(FONT, 26)
 
-        self.scorer = Score()
+        self.scorer   = Score()
+        self.obstacle = Obstacle()
         self._reset()
 
     # Reset / khởi tạo trạng thái
     def _reset(self):
-        self.snakes    = [[5, 10]]
-        self.direction = "right"
-        self.next_dir  = "right"
-        self.food      = Food()
-        self.food.respawn(self.snakes)
-        self.score     = 0
-        self.pausing   = False
+        g = self.grid
+
+        if self.is_2p:
+            self.snake1 = Snake([g // 4,     g // 2], "right",
+                                (0, 210, 80),   (120, 255, 140))
+            self.snake2 = Snake([3 * g // 4, g // 2], "left",
+                                (30, 120, 220), (100, 180, 255))
+            for _ in range(2):
+                self.snake1.body.insert(0, self.snake1.body[0][:])
+                self.snake2.body.insert(0, self.snake2.body[0][:])
+        else:
+            self.snake1 = Snake([g // 2 - 2, g // 2], "right",
+                                (0, 210, 80),   (120, 255, 140))
+            self.snake2 = None
+            for _ in range(2):
+                self.snake1.body.insert(0, self.snake1.body[0][:])
+
+        forbidden = self._all_occupied() | self._spawn_safe_zone()
+        self.obstacle.spawn(self.grid, OBSTACLE_COUNT if self.is_2p else 0,
+                            forbidden)
+
+        self.food = Food()
+        self.food.respawn(self._all_body_list())
+
         self.pausing    = False
         self.paused     = False
         self.new_record = False
+        self.winner     = None
         self.step_timer = 0.0
-        self._go_alpha  = 0          # reset fade-in mỗi ván
-        self._pause_alpha = 0        # reset fade-in pause mỗi ván
-        self._pause_tick  = 0        # đếm frame cho pulse animation
+        self._go_alpha  = 0
+        self._pause_alpha = 0
+        self._pause_tick  = 0
 
     # Di chuyển rắn 
-    def _move(self):
-        self.direction = self.next_dir
-        head = self.snakes[-1]
-        if self.direction == "right":
-            new_head = [head[0] + 1, head[1]]
-        elif self.direction == "left":
-            new_head = [head[0] - 1, head[1]]
-        elif self.direction == "up":
-            new_head = [head[0], head[1] - 1]
-        else:
-            new_head = [head[0], head[1] + 1]
+    # Helper: tập hợp ô đã có rắn
+    def _all_occupied(self) -> set[tuple]:
+        occ = self.snake1.occupied()
+        if self.snake2:
+            occ |= self.snake2.occupied()
+        return occ
 
-        self.snakes.append(new_head)
-        self.snakes.pop(0)
+    def _all_body_list(self) -> list[list[int]]:
+        body = list(self.snake1.body)
+        if self.snake2:
+            body += list(self.snake2.body)
+        return body
 
-    # Ăn mồi
-    def _check_eat(self):
-        head = self.snakes[-1]
-        if head[0] == self.food.x and head[1] == self.food.y:
-            tail = self.snakes[0]
-            self.snakes.insert(0, [tail[0], tail[1]])
-            self.food.respawn(self.snakes)
-            self.score += 1
+    def _spawn_safe_zone(self) -> set[tuple]:
+        """Vùng ±3 quanh spawn point để obstacle không block lối ra."""
+        g = self.grid
+        safe: set[tuple] = set()
+        centers = [[g // 4, g // 2]]
+        if self.is_2p:
+            centers.append([3 * g // 4, g // 2])
+        for cx, cy in centers:
+            for dx in range(-3, 4):
+                for dy in range(-3, 4):
+                    safe.add((cx + dx, cy + dy))
+        return safe
 
-    # Kiểm tra va chạm
-    def _check_collision(self):
-        head = self.snakes[-1]
-        # Đụng tường
-        if head[0] < 0 or head[0] >= GRID or head[1] < 0 or head[1] >= GRID:
-            self.pausing = True
-            return
-        # Đụng thân
-        for segment in self.snakes[:-1]:
-            if head == segment:
-                self.pausing = True
-                return
-
-    # Vẽ
+# Vẽ
     def _draw(self):
+        W = self.grid * CELL
+        H = self.grid * CELL
         self.screen.fill(DARK)
 
         # Lưới mờ
-        for i in range(GRID + 1):
-            pygame.draw.line(self.screen, (35, 35, 35), (0, i*CELL), (GRID*CELL, i*CELL))
-            pygame.draw.line(self.screen, (35, 35, 35), (i*CELL, 0), (i*CELL, GRID*CELL))
+        for i in range(self.grid + 1):
+            pygame.draw.line(self.screen, (32, 32, 32),
+                             (0, i * CELL), (W, i * CELL))
+            pygame.draw.line(self.screen, (32, 32, 32),
+                             (i * CELL, 0), (i * CELL, H))
 
-        # Rắn
-        for idx, seg in enumerate(self.snakes):
-            color = GREEN if idx != len(self.snakes) - 1 else (100, 255, 120)
-            pygame.draw.rect(self.screen, color,
-                             (seg[0]*CELL + 1, seg[1]*CELL + 1, CELL - 2, CELL - 2),
-                             border_radius=4)
+        # Obstacles
+        self.obstacle.draw(self.screen, CELL)
+
+        # Snake draw helper
+        def draw_snake(snake: Snake):
+            for idx, seg in enumerate(snake.body):
+                is_head = (idx == len(snake.body) - 1)
+                color   = snake.color_head if is_head else snake.color_body
+                pygame.draw.rect(
+                    self.screen, color,
+                    (seg[0] * CELL + 1, seg[1] * CELL + 1,
+                     CELL - 2, CELL - 2),
+                    border_radius=5 if is_head else 3)
+
+        draw_snake(self.snake1)
+        if self.snake2:
+            draw_snake(self.snake2)
 
         # Mồi
         fx, fy = self.food.x * CELL, self.food.y * CELL
-        pygame.draw.rect(self.screen, RED, (fx + 3, fy + 3, CELL - 6, CELL - 6), border_radius=6)
+        pygame.draw.rect(self.screen, RED,
+                         (fx + 3, fy + 3, CELL - 6, CELL - 6), border_radius=6)
 
-        # HUD
-        score_txt = self.font_small.render(
-            f"Score: {self.score}   Best: {self.scorer.get_high_score(self.username)}   [{self.difficulty.upper()}]",
-            True, WHITE)
-        self.screen.blit(score_txt, (5, 5))
+        # HUD bar (phía dưới lưới)
+        hud_y = H + 2
+        if self.is_2p:
+            p1_txt   = self.font_small.render(
+                f"P1 (WASD): {self.snake1.score}", True, (120, 255, 140))
+            p2_txt   = self.font_small.render(
+                f"P2 (↑↓←→): {self.snake2.score}", True, (100, 180, 255))
+            diff_txt = self.font_small.render(
+                f"[{self.difficulty.upper()}]", True, (180, 180, 180))
+            self.screen.blit(p1_txt,   (6, hud_y))
+            self.screen.blit(p2_txt,   (W // 2 - 20, hud_y))
+            self.screen.blit(diff_txt, (W - 90, hud_y))
+        else:
+            best    = self.scorer.get_high_score(self.username)
+            hud_txt = self.font_small.render(
+                f"Score: {self.snake1.score}   Best: {best}   [{self.difficulty.upper()}]",
+                True, WHITE)
+            self.screen.blit(hud_txt, (5, hud_y))
+
   # pause game
     def _draw_paused(self):
         W, H  = self.screen.get_size()
@@ -238,10 +370,20 @@ class Game:
                          (panel_x, panel_y, panel_w, panel_h),
                          2, border_radius=16)
 
-        # ── "GAME OVER" title ─────────────────────────────────────
-        font_title = pygame.font.SysFont('sans', 52, bold=True)
-        title_color = (220, 50, 80)
-        title = font_title.render("GAME OVER", True, title_color)
+# ── Title: GAME OVER (1P) hoặc tên người thắng (2P) ──────────
+        if self.is_2p:
+            win_colors = {"P1": (120, 255, 140), "P2": (100, 180, 255),
+                          "Draw": YELLOW}
+            win_labels = {"P1": "Player 1 Wins!", "P2": "Player 2 Wins!",
+                          "Draw": "It's a Draw!"}
+            title_color = win_colors.get(self.winner, WHITE)
+            title_label = win_labels.get(self.winner, "Game Over")
+            font_title  = pygame.font.SysFont('sans', 44, bold=True)
+        else:
+            title_color = (220, 50, 80)
+            title_label = "GAME OVER"
+            font_title  = pygame.font.SysFont('sans', 52, bold=True)
+        title = font_title.render(title_label, True, title_color)
         self.screen.blit(title, title.get_rect(centerx=CX, y=panel_y + 28))
 
         # Gạch chân dưới title
@@ -249,37 +391,45 @@ class Game:
         pygame.draw.line(self.screen, (60, 60, 100),
                          (panel_x + 20, line_y), (panel_x + panel_w - 20, line_y), 1)
 
-        # ── Score / High Score ────────────────────────────────────
+# ── Score / High Score ────────────────────────────────────────
         font_label = pygame.font.SysFont('sans', 20)
         font_value = pygame.font.SysFont('sans', 32, bold=True)
-        high = self.scorer.get_high_score(self.username)
 
-        # Score block (trái)
-        sc_lbl = font_label.render("SCORE", True, (140, 140, 180))
-        sc_val = font_value.render(str(self.score), True, WHITE)
-        self.screen.blit(sc_lbl, sc_lbl.get_rect(centerx=CX - 90, y=panel_y + 105))
-        self.screen.blit(sc_val, sc_val.get_rect(centerx=CX - 90, y=panel_y + 128))
-
-        # Divider dọc
-        pygame.draw.line(self.screen, (60, 60, 100),
-                         (CX, panel_y + 100), (CX, panel_y + 175), 1)
-
-        # High Score block (phải)
-        hs_color = YELLOW if self.new_record else (140, 140, 180)
-        hs_lbl = font_label.render("BEST", True, hs_color)
-        hs_val = font_value.render(str(high), True, YELLOW if self.new_record else WHITE)
-        self.screen.blit(hs_lbl, hs_lbl.get_rect(centerx=CX + 90, y=panel_y + 105))
-        self.screen.blit(hs_val, hs_val.get_rect(centerx=CX + 90, y=panel_y + 128))
-
-        # Badge "NEW RECORD"
-        if self.new_record:
-            badge_font = pygame.font.SysFont('sans', 15, bold=True)
-            badge = badge_font.render("NEW RECORD", True, (20, 20, 20))
-            bw = badge.get_width() + 16
-            bx = CX + 90 - bw // 2
-            by = panel_y + 168
-            pygame.draw.rect(self.screen, YELLOW, (bx, by, bw, 20), border_radius=4)
-            self.screen.blit(badge, (bx + 8, by + 2))
+        if self.is_2p:
+            # P1 (trái)
+            p1_lbl = font_label.render("PLAYER 1", True, (120, 255, 140))
+            p1_val = font_value.render(str(self.snake1.score), True, WHITE)
+            self.screen.blit(p1_lbl, p1_lbl.get_rect(centerx=CX - 90, y=panel_y + 105))
+            self.screen.blit(p1_val, p1_val.get_rect(centerx=CX - 90, y=panel_y + 128))
+            pygame.draw.line(self.screen, (60, 60, 100),
+                             (CX, panel_y + 100), (CX, panel_y + 175), 1)
+            # P2 (phải)
+            p2_lbl = font_label.render("PLAYER 2", True, (100, 180, 255))
+            p2_val = font_value.render(str(self.snake2.score), True, WHITE)
+            self.screen.blit(p2_lbl, p2_lbl.get_rect(centerx=CX + 90, y=panel_y + 105))
+            self.screen.blit(p2_val, p2_val.get_rect(centerx=CX + 90, y=panel_y + 128))
+        else:
+            high = self.scorer.get_high_score(self.username)
+            sc_lbl = font_label.render("SCORE", True, (140, 140, 180))
+            sc_val = font_value.render(str(self.snake1.score), True, WHITE)
+            self.screen.blit(sc_lbl, sc_lbl.get_rect(centerx=CX - 90, y=panel_y + 105))
+            self.screen.blit(sc_val, sc_val.get_rect(centerx=CX - 90, y=panel_y + 128))
+            pygame.draw.line(self.screen, (60, 60, 100),
+                             (CX, panel_y + 100), (CX, panel_y + 175), 1)
+            hs_color = YELLOW if self.new_record else (140, 140, 180)
+            hs_lbl = font_label.render("BEST", True, hs_color)
+            hs_val = font_value.render(str(high), True,
+                                       YELLOW if self.new_record else WHITE)
+            self.screen.blit(hs_lbl, hs_lbl.get_rect(centerx=CX + 90, y=panel_y + 105))
+            self.screen.blit(hs_val, hs_val.get_rect(centerx=CX + 90, y=panel_y + 128))
+            if self.new_record:
+                badge_font = pygame.font.SysFont('sans', 15, bold=True)
+                badge = badge_font.render("NEW RECORD", True, (20, 20, 20))
+                bw = badge.get_width() + 16
+                bx = CX + 90 - bw // 2
+                by = panel_y + 168
+                pygame.draw.rect(self.screen, YELLOW, (bx, by, bw, 20), border_radius=4)
+                self.screen.blit(badge, (bx + 8, by + 2))
 
         # ── Buttons ───────────────────────────────────────────────
         btn_y      = panel_y + 210
@@ -321,36 +471,145 @@ class Game:
         if event.type != pygame.KEYDOWN:
             return False
 
-        if not self.pausing:
+        # Pause chỉ dùng cho 1P
+        if not self.is_2p and not self.pausing:
             if event.key == pygame.K_p:
                 self.paused = not self.paused
                 if not self.paused:
                     self._pause_alpha = 0
                     self._pause_tick  = 0
-            if not self.paused:
-                if event.key == pygame.K_UP    and self.direction != "down":
-                    self.next_dir = "up"
-                if event.key == pygame.K_DOWN  and self.direction != "up":
-                    self.next_dir = "down"
-                if event.key == pygame.K_LEFT  and self.direction != "right":
-                    self.next_dir = "left"
-                if event.key == pygame.K_RIGHT and self.direction != "left":
-                    self.next_dir = "right"
 
         if event.key == pygame.K_SPACE and self.pausing:
             self._reset()
+            return False
         if event.key == pygame.K_ESCAPE:
-            return True   # signal: thoát run()
+            return True
+
+        if self.pausing or self.paused:
+            return False
+
+        # Player 1: WASD
+        s1 = self.snake1
+        if event.key == pygame.K_w and s1.direction != "down":
+            s1.next_dir = "up"
+        if event.key == pygame.K_s and s1.direction != "up":
+            s1.next_dir = "down"
+        if event.key == pygame.K_a and s1.direction != "right":
+            s1.next_dir = "left"
+        if event.key == pygame.K_d and s1.direction != "left":
+            s1.next_dir = "right"
+
+        # Player 1 (1P): thêm arrow keys
+        if not self.is_2p:
+            if event.key == pygame.K_UP    and s1.direction != "down":
+                s1.next_dir = "up"
+            if event.key == pygame.K_DOWN  and s1.direction != "up":
+                s1.next_dir = "down"
+            if event.key == pygame.K_LEFT  and s1.direction != "right":
+                s1.next_dir = "left"
+            if event.key == pygame.K_RIGHT and s1.direction != "left":
+                s1.next_dir = "right"
+
+        # Player 2: Arrow keys (chỉ 2P)
+        if self.is_2p and self.snake2:
+            s2 = self.snake2
+            if event.key == pygame.K_UP    and s2.direction != "down":
+                s2.next_dir = "up"
+            if event.key == pygame.K_DOWN  and s2.direction != "up":
+                s2.next_dir = "down"
+            if event.key == pygame.K_LEFT  and s2.direction != "right":
+                s2.next_dir = "left"
+            if event.key == pygame.K_RIGHT and s2.direction != "left":
+                s2.next_dir = "right"
 
         return False
-
+    
     # Bước logic game mỗi step_delay giây
     def _step(self):
-        self._move()
-        self._check_collision()
-        self._check_eat()
+        g = self.grid
+
+        self.snake1.commit_direction()
+        new_head1 = self.snake1.next_head()
+
+        new_head2 = None
+        if self.snake2 and self.snake2.alive:
+            self.snake2.commit_direction()
+            new_head2 = self.snake2.next_head()
+
+        obs   = self.obstacle.cells
+        body1 = self.snake1.occupied()
+        body2 = self.snake2.occupied() if self.snake2 else set()
+
+        def out_of_bounds(h):
+            return h[0] < 0 or h[0] >= g or h[1] < 0 or h[1] >= g
+
+        def hits_wall_or_self_or_obs(head, own_body):
+            return (out_of_bounds(head)
+                    or tuple(head) in obs
+                    or tuple(head) in {tuple(s) for s in own_body[:-1]})
+
+        dead1 = hits_wall_or_self_or_obs(new_head1, self.snake1.body)
+        if new_head2 is not None and tuple(new_head1) in body2:
+            dead1 = True
+
+        dead2 = False
+        if self.snake2 and self.snake2.alive and new_head2 is not None:
+            dead2 = hits_wall_or_self_or_obs(new_head2, self.snake2.body)
+            if tuple(new_head2) in body1:
+                dead2 = True
+
+        # Head-on: 2 đầu gặp nhau → cả 2 chết
+        if new_head2 is not None and new_head1 == new_head2:
+            dead1 = dead2 = True
+
+        if dead1:
+            self.snake1.alive = False
+        if dead2 and self.snake2:
+            self.snake2.alive = False
+
+        if self.is_2p:
+            s1_alive = self.snake1.alive
+            s2_alive = self.snake2 and self.snake2.alive
+            if not s1_alive and not s2_alive:
+                self.winner  = "Draw"
+                self.pausing = True
+            elif not s1_alive:
+                self.winner  = "P2"
+                self.pausing = True
+            elif not s2_alive:
+                self.winner  = "P1"
+                self.pausing = True
+        else:
+            if not self.snake1.alive:
+                self.pausing = True
+
         if self.pausing:
-            self.new_record = self.scorer.save_if_high_score(self.username, self.score)
+            if not self.is_2p:
+                self.new_record = self.scorer.save_if_high_score(
+                    self.username, self.snake1.score)
+            return
+
+        self.snake1.move()
+        if self.snake2 and self.snake2.alive:
+            self.snake2.move()
+
+        fx, fy = self.food.x, self.food.y
+        ate    = False
+
+        if self.snake1.head == [fx, fy]:
+            self.snake1.grow()
+            ate = True
+        elif self.snake2 and self.snake2.head == [fx, fy]:
+            self.snake2.grow()
+            ate = True
+
+        if ate:
+            all_bodies = self._all_body_list()
+            combined   = self.obstacle.cells | {tuple(s) for s in all_bodies}
+            for _ in range(500):
+                self.food.respawn(all_bodies)
+                if (self.food.x, self.food.y) not in combined:
+                    break
 
     # Main loop
     def run(self):
@@ -366,11 +625,14 @@ class Game:
 
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
+                    pygame.display.set_mode((601, 601))
                     pygame.quit()
                     raise SystemExit
                 if self._handle_mouse(event):
+                    pygame.display.set_mode((601, 601))
                     return
                 if self._handle_key(event):
+                    pygame.display.set_mode((601, 601))
                     return
 
             if not self.pausing and not self.paused:
