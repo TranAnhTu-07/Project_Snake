@@ -5,13 +5,19 @@ import random
 from food import Food
 from score import Score
 
-GREEN  = (0,   210, 80)
-GREEN2 = (0,   160, 50)
-BLACK  = (0,   0,   0)
-WHITE  = (255, 255, 255)
-RED    = (220, 50,  50)
-YELLOW = (255, 220, 0)
-DARK   = (20,  20,  20)
+# Thêm màu sắc cho rắn
+GREEN   = (0,   210,  80)
+GREEN2  = (0,   160,  50)
+BLUE    = (30,  120, 255)
+BLUE2   = (20,   80, 180)
+BLACK   = (0,     0,   0)
+WHITE   = (255, 255, 255)
+RED     = (220,  50,  50)
+ORANGE  = (255, 160,   0)
+YELLOW  = (255, 220,   0)
+DARK    = (20,   20,  20)
+GRAY    = (180, 180, 180)
+CYAN    = (0,   220, 220)
 
 
 CELL        = 25
@@ -177,6 +183,10 @@ class Game:
         self._pause_alpha = 0
         self._pause_tick  = 0
 
+        # UC11: đếm ngược sau tiếp tục
+        self._countdown   = 0 
+        self._countdown_timer = 0.0
+
     # Di chuyển rắn 
     # Helper: tập hợp ô đã có rắn
     def _all_occupied(self) -> set[tuple]:
@@ -265,6 +275,17 @@ class Game:
         CX    = W // 2
         CY    = H // 2
 
+        # UC11: Đếm ngược
+        if self._countdown > 0:
+            overlay = pygame.Surface((W,H), pygame.SRCALPHA)
+            overlay.fill((0,0,0,160))
+            self.screen.blit(overlay,(0,0))
+            num = self.font_big.render(str(self._countdown), True, YELLOW)
+            self.screen.blit(num, num.get_rect(center=(CX,CY)))
+            msg = self.font_mid.render("Chuẩn bị...", True, WHITE)
+            self.screen.blit(msg, msg.get_rect(centerx=CX, y=CY+60))
+            return
+
         # ── Fade-in alpha ─────────────────────────────────────────
         if self._pause_alpha < 200:
             self._pause_alpha = min(self._pause_alpha + 15, 200)
@@ -341,7 +362,13 @@ class Game:
         # SAU Thêm phần hiện tên người chơi
         tip = font_tip.render(f"Paused  ·  {self.username}", True, (120, 120, 160))
         self.screen.blit(tip, tip.get_rect(centerx=CX, y=panel_y + panel_h - 32))
-        
+
+    # 
+    def _draw_countdown(self):
+        W, H = self.screen.get_size()
+        font = pygame.font.SysFont('sans', 120, bold=True)
+        surf = font.render(str(self._countdown), True, YELLOW)
+        self.screen.blit(surf, surf.get_rect(center=(W // 2, H // 2)))   
     # game over
     def _draw_game_over(self):
         # --- Fade-in alpha tăng dần mỗi frame, tối đa 210 ---
@@ -479,8 +506,11 @@ class Game:
             if event.key == pygame.K_p:
                 self.paused = not self.paused
                 if not self.paused:
-                    self._pause_alpha = 0
-                    self._pause_tick  = 0
+                    # UC11: them thoi gian dem nguoc khi tiep tuc
+                    self._countdown       = 3
+                    self._countdown_timer = 0.0
+                    self._pause_alpha     = 0
+                    self._pause_tick      = 0
 
         if event.key == pygame.K_SPACE and self.pausing:
             self._reset()
@@ -618,8 +648,14 @@ class Game:
     def run(self):
         while True:
             dt = self.clock.tick(60) / 1000.0
-
+            # UC11: Cập nhật đồng hồ đếm ngược sau khi tiếp tục
             self._draw()
+            if self._countdown > 0:
+                self._draw_paused()
+                self._countdown_timer += dt
+                if self._countdown_timer >= 1.0:
+                    self._countdown -= 1
+                    self._countdown_timer = 0.0
             if self.paused:
                 self._draw_paused()
             elif self.pausing:
