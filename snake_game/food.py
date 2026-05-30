@@ -3,7 +3,7 @@ from random import randint
 GRID_SIZE = 20  # 20x20 ô
 
 class Food:
-    def __init__(self):
+    def __init__(self, game_mode="1p"):
         self.game_mode = game_mode #game_mode = 1 là chế độ 1 người, 2 là chế độ 2 người
         # self.position = self._random_pos()
         self.foods = []

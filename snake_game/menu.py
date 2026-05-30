@@ -108,38 +108,94 @@ class Menu:
 
     # ── UC3: Main menu ────────────────────────────────────────────────────────
     def show_main_menu(self, username: str) -> str:
-        """Returns: play | leaderboard | logout | quit"""
-        btn_play  = pygame.Rect(200, 220, 200, 50)
-        btn_board = pygame.Rect(200, 290, 200, 50)
-        btn_out   = pygame.Rect(200, 360, 200, 50)
-        btn_quit  = pygame.Rect(200, 430, 200, 50)
+        btn_play1 = pygame.Rect(150, 200, 300, 52)
+        btn_play2 = pygame.Rect(150, 268, 300, 52)
+        btn_board = pygame.Rect(150, 336, 300, 52)
+        btn_out   = pygame.Rect(150, 404, 300, 52)
+        btn_quit  = pygame.Rect(150, 472, 300, 52)
 
         while True:
-            self.screen.fill(DARK)
-            title = self.font_big.render("SNAKE", True, GREEN)
-            self.screen.blit(title, title.get_rect(centerx=300, y=80))
-            user_lbl = self.font_small.render(f"Xin chào, {username}!", True, YELLOW)
-            self.screen.blit(user_lbl, user_lbl.get_rect(centerx=300, y=155))
+            self.screen.fill((30,  30,  30)) # Màu DARK
+            title = self.font_big.render("SNAKE", True, (0, 200, 80))
+            self.screen.blit(title, title.get_rect(centerx=300, y=70))
+            user_lbl = self.font_small.render(f"Xin chào, {username}!", True, (255, 220, 0))
+            self.screen.blit(user_lbl, user_lbl.get_rect(centerx=300, y=152))
 
             mx, my = pygame.mouse.get_pos()
-            self._draw_button("Chơi",         btn_play,  (30, 140, 60),  btn_play.collidepoint(mx, my))
-            self._draw_button("Bảng xếp hạng", btn_board, (140, 80, 20),  btn_board.collidepoint(mx, my))
-            self._draw_button("Đăng xuất",     btn_out,   (60, 60, 160),  btn_out.collidepoint(mx, my))
-            self._draw_button("Thoát",         btn_quit,  (160, 30, 30),  btn_quit.collidepoint(mx, my))
+            self._draw_button("Chơi 1 người",   btn_play1, (30,140,60),  btn_play1.collidepoint(mx,my))
+            self._draw_button("Chơi 2 người",   btn_play2, (20,80,180),  btn_play2.collidepoint(mx,my))
+            self._draw_button("Bảng xếp hạng",     btn_board, (140,80,20),  btn_board.collidepoint(mx,my))
+            self._draw_button("Đăng xuất",          btn_out,   (60,60,160),  btn_out.collidepoint(mx,my))
+            self._draw_button("Thoát",              btn_quit,  (160,30,30),  btn_quit.collidepoint(mx,my))
 
             pygame.display.flip()
             self.clock.tick(60)
 
             for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    return "quit"
+                if event.type == pygame.QUIT: return "quit"
                 if event.type == pygame.MOUSEBUTTONDOWN:
-                    if btn_play.collidepoint(event.pos):  return "play"
+                    if btn_play1.collidepoint(event.pos): return "play1"
+                    if btn_play2.collidepoint(event.pos): return "play2"
                     if btn_board.collidepoint(event.pos): return "leaderboard"
                     if btn_out.collidepoint(event.pos):   return "logout"
                     if btn_quit.collidepoint(event.pos):  return "quit"
                 if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                     return "quit"
+                
+    # ── UC2: Nhập tên người chơi 2 ───────────────────────────────
+    def show_player2_name(self, username1: str) -> str | None:
+        name2 = ""
+        message = ""
+        btn_ok   = pygame.Rect(150, 380, 130, 44)
+        btn_back = pygame.Rect(320, 380, 130, 44)
+
+        while True:
+            self.screen.fill((30,  30,  30)) # DARK
+            title = self.font_mid.render("Chế độ 2 người", True, (0, 220, 220)) # CYAN
+            self.screen.blit(title, title.get_rect(centerx=300, y=80))
+
+            # Hướng dẫn phím
+            font_sm = self.font_small
+            self.screen.blit(font_sm.render(f"Người 1: {username1}", True, (100,255,120)), (100,160))
+            self.screen.blit(font_sm.render("Điều khiển: WASD", True, (100,255,120)), (100,185))
+            pygame.draw.line(self.screen, (180, 180, 180), (80,220),(520,220), 1)
+            self.screen.blit(font_sm.render("Tên người chơi 2:", True, (255, 255, 255)), (100,240))
+            self.screen.blit(font_sm.render("Điều khiển: ↑ ↓ ← →", True, (100,180,255)), (100,265))
+
+            # Input box P2
+            rect2 = pygame.Rect(100, 305, 400, 40)
+            pygame.draw.rect(self.screen, (30, 30, 30), rect2, border_radius=6)
+            pygame.draw.rect(self.screen, (30, 120, 255), rect2, 2, border_radius=6)
+            txt = font_sm.render(name2, True, (255, 255, 255))
+            self.screen.blit(txt, (rect2.x+8, rect2.y+8))
+
+            if message:
+                self.screen.blit(font_sm.render(message, True, (220, 50, 50)), (100, 355))
+
+            mx, my = pygame.mouse.get_pos()
+            self._draw_button("Bắt đầu", btn_ok,   (30,140,60),  btn_ok.collidepoint(mx,my))
+            self._draw_button("Quay lại",btn_back,  (70,70,70),   btn_back.collidepoint(mx,my))
+
+            pygame.display.flip()
+            self.clock.tick(60)
+
+            for event in pygame.event.get():
+                if event.type == pygame.QUIT: return None
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    if btn_ok.collidepoint(event.pos):
+                        if not name2.strip(): message = "Vui lòng nhập tên người chơi 2!"
+                        elif name2.strip() == username1: message = "Tên không được trùng với người chơi 1!"
+                        else: return name2.strip()
+                    elif btn_back.collidepoint(event.pos): return None
+                if event.type == pygame.KEYDOWN:
+                    if event.key == pygame.K_RETURN:
+                        if name2.strip() and name2.strip() != username1: return name2.strip()
+                        else: message = "Tên không hợp lệ!"
+                    elif event.key == pygame.K_BACKSPACE: name2 = name2[:-1]
+                    elif event.key == pygame.K_ESCAPE: return None
+                    else:
+                        char = event.unicode
+                        if char and len(char)==1 and len(name2)<20: name2 += char
 
     # ── UC6: Difficulty ───────────────────────────────────────────────────────
     def show_difficulty_menu(self) -> str | None:

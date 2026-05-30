@@ -116,10 +116,11 @@ class Obstacle:
 class Game:
     # khởi tạo game
     def __init__(self, screen: pygame.Surface, clock: pygame.time.Clock,
-                 username: str, difficulty: str, mode: str = "1p"):
+                 username: str, difficulty: str, mode: str = "1p", username2: str = "P2"):
         self.screen     = screen
         self.clock      = clock
         self.username   = username
+        self.username2  = username2
         self.difficulty = difficulty
         self.mode       = mode
         self.step_delay = DIFFICULTY_SPEED.get(difficulty, 0.08)
@@ -243,9 +244,9 @@ class Game:
         hud_y = H + 2
         if self.is_2p:
             p1_txt   = self.font_small.render(
-                f"P1 (WASD): {self.snake1.score}", True, (120, 255, 140))
+                f"{self.username} (WASD): {self.snake1.score}", True, (120, 255, 140))
             p2_txt   = self.font_small.render(
-                f"P2 (↑↓←→): {self.snake2.score}", True, (100, 180, 255))
+                f"{self.username2} (↑↓←→): {self.snake2.score}", True, (100, 180, 255))
             diff_txt = self.font_small.render(
                 f"[{self.difficulty.upper()}]", True, (180, 180, 180))
             self.screen.blit(p1_txt,   (6, hud_y))
