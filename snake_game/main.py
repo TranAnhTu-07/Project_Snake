@@ -34,17 +34,20 @@ def main():
     while True:
         choice = menu.show_main_menu(current_user)
         if choice == "play1":
+            # UC2: Chế độ 1 người
             difficulty = menu.show_difficulty_menu()
             if difficulty:
-                game = Game(screen, clock, current_user, difficulty, mode="1p")
+                game = Game(screen, clock, current_user, difficulty, mode="single")
                 game.run()
+
         elif choice == "play2":
+            # UC2: Chế độ 2 người
             name2 = menu.show_player2_name(current_user)
             if name2:
                 difficulty = menu.show_difficulty_menu()
                 if difficulty:
-                    # Truyền thêm mode="2p" và username2 vào đây
-                    game = Game(screen, clock, current_user, difficulty, mode="2p", username2=name2)
+                    game = Game(screen, clock, current_user, difficulty,
+                                mode="two_player", username2=name2)
                     game.run()
         elif choice == "leaderboard":
             menu.show_leaderboard()

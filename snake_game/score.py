@@ -20,6 +20,12 @@ class Score:
             data = json.load(f)
 
         users = data.get("users", {})
+
+        """thuyvy sua ham khoi tao tk tam cho player 2"""
+        if username not in users:
+            users[username] = {"password": "", "high_score": 0}
+        # ----------------------------------------------------------------
+
         current_best = users.get(username, {}).get("high_score", 0)
 
         if score > current_best:
