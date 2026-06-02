@@ -19,6 +19,7 @@ YELLOW  = (255, 220,   0)
 DARK    = (20,   20,  20)
 GRAY    = (180, 180, 180)
 CYAN    = (0,   220, 220)
+WALL    = (110, 110, 110) 
 
 CELL = 30
 GRID = 20
@@ -155,6 +156,7 @@ class Game:
 
         # UC9: sinh mồi tự động
         self._spawn_foods()
+        self._spawn_obstacles()
 
         self.pausing      = False
         self.paused       = False
@@ -188,6 +190,22 @@ class Game:
             # [Bước 9.1.8] Hệ thống đặt mồi vào tọa độ (x, y) trên ma trận bản đồ.
             self.foods.append(f)
     
+    # UC3: Sinh chướng ngại vật ngẫu nhiên
+    def _spawn_obstacles(self):
+        occupied = (
+            list(self.snake1.body)
+            + (list(self.snake2.body) if self.snake2 else [])
+            + [[f.x, f.y] for f in self.foods]
+        )
+        count = randint(5, 10)
+        self.obstacles = []
+        attempts = 0
+        while len(self.obstacles) < count and attempts < 300:
+            x = randint(0, GRID - 1)
+            y = randint(0, GRID - 1)
+            if [x, y] not in occupied and [x, y] not in self.obstacles:
+                self.obstacles.append([x, y])
+            attempts += 1
 
 
     def _all_body(self):
@@ -232,6 +250,11 @@ class Game:
         snakes = [s for s in [self.snake1, self.snake2] if s and s.alive]
         for snake in snakes:
             if snake.check_wall_collision() or snake.check_self_collision():
+                snake.alive = False
+
+        # Va chạm chướng ngại vật (cả 1 và 2 người)
+        for snake in snakes:
+            if snake.alive and snake.body[-1] in self.obstacles:
                 snake.alive = False
 
         # Va chạm giữa 2 rắn (chỉ chế độ 2 người)
@@ -292,6 +315,19 @@ class Game:
         for i in range(GRID + 1):
             pygame.draw.line(self.screen, (35,35,35), (offset_x, i*CELL), (offset_x+GAME_W, i*CELL))
             pygame.draw.line(self.screen, (35,35,35), (offset_x+i*CELL, 0), (offset_x+i*CELL, GRID*CELL))
+
+        # UC3: Vẽ chướng ngại vật
+        for obs in self.obstacles:
+            pygame.draw.rect(
+                self.screen, WALL,
+                (obs[0]*CELL + 2, obs[1]*CELL + 2, CELL - 4, CELL - 4),
+                border_radius=3
+            )
+            pygame.draw.rect(
+                self.screen, (80, 80, 80),
+                (obs[0]*CELL + 2, obs[1]*CELL + 2, CELL - 4, CELL - 4),
+                2, border_radius=3
+            )
 
         # Vẽ mồi
         for food in self.foods:
@@ -613,8 +649,8 @@ class Game:
     # ── Step logic ───────────────────────────────────────────────
     def _step(self):
         self.snake1.move()
-        # if self.snake2:
-        #     self.snake2.move()
+        if self.snake2:
+            self.snake2.move()
         self._check_eat()
         self._check_collisions()
 
