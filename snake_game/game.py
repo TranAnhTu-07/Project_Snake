@@ -312,35 +312,51 @@ class Game:
         # HUD
         self._draw_hud()
 
+     # [UC10 - Đặng Tuấn Vũ] Hàm xử lý hiện điểm
     def _draw_hud(self):
+        # [Bước 10.1.2] Hệ thống hiển thị bảng điểm trên giao diện trò chơi.
         W, H = self.screen.get_size()
+        
         if self.mode == "single":
+            # [Bước 10.1.5] Nếu đang ở chế độ 1 người chơi, hệ thống đồng thời hiển thị điểm cao nhất hiện có.
             hud = self.font_small.render(
                 f"🎮 {self.username}  Score: {self.snake1.score}   Best: {self.scorer.get_high_score(self.username)}   [{self.difficulty.upper()}]",
                 True, WHITE)
             self.screen.blit(hud, (5, 5))
         else:
-            # UC10: Bảng điểm 2 người live
-            # Panel nền HUD
-            hud_surf = pygame.Surface((GRID*CELL, 28), pygame.SRCALPHA)
-            hud_surf.fill((0,0,0,160))
-            self.screen.blit(hud_surf, (0, 0))
+            # [Bước 10.1.6] Nếu đang ở chế độ 2 người chơi, hệ thống hiển thị điểm của cả Người chơi 1 và Người chơi 2.
+            board_width = 230
+            board_height = 100
+            x = W - board_width - 15 
+            y = 15
+            # Vẽ nền mờ bo góc
+            bg_surface = pygame.Surface((board_width, board_height), pygame.SRCALPHA)
+            pygame.draw.rect(bg_surface, (20, 20, 30, 180), (0, 0, board_width, board_height), border_radius=12)
+            pygame.draw.rect(bg_surface, (150, 150, 200, 80), (0, 0, board_width, board_height), width=1, border_radius=12)
+            self.screen.blit(bg_surface, (x, y))
+            # Tiêu đề bảng điểm
+            title_txt = self.font_small.render("BẢNG ĐIỂM", True, WHITE)
+            self.screen.blit(title_txt, (x + (board_width - title_txt.get_width()) // 2, y + 8))
+            pygame.draw.line(self.screen, (100, 100, 150), (x + 15, y + 32), (x + board_width - 15, y + 32), 1)
+            # Render tên và điểm số độc lập của 2 người
+            p1_color = (100, 255, 120) 
+            p2_color = (100, 180, 255)
 
-            p1_txt = self.font_small.render(
-                f"[↑←↓→] {self.snake1.name}: {self.snake1.score}", True, (100,255,120))
-            p2_txt = self.font_small.render(
-                f"[WASD] {self.snake2.name}: {self.snake2.score}", True, (100,180,255))
-            self.screen.blit(p1_txt, (4, 5))
-            self.screen.blit(p2_txt, (GRID*CELL - p2_txt.get_width() - 4, 5))
+            p1_txt = self.font_small.render(f"{self.snake1.name}: {self.snake1.score}", True, p1_color)
+            p2_txt = self.font_small.render(f"{self.snake2.name}: {self.snake2.score}", True, p2_color)
 
-            # Dấu hiệu ai đang dẫn
-            if self.snake1.score > self.snake2.score:
-                lead = self.font_small.render("▲ P1 đang dẫn", True, GREEN)
-            elif self.snake2.score > self.snake1.score:
-                lead = self.font_small.render("▲ P2 đang dẫn", True, BLUE)
+            # So sánh điểm để quyết định ai nằm trên (đứng đầu), ai nằm dưới
+            pos_top = (x + 15, y + 42)
+            pos_bottom = (x + 15, y + 70)
+
+            if self.snake1.score >= self.snake2.score:
+                # P1 điểm cao hơn hoặc bằng -> P1 đứng đầu
+                self.screen.blit(p1_txt, pos_top)
+                self.screen.blit(p2_txt, pos_bottom)
             else:
-                lead = self.font_small.render("Hòa!", True, YELLOW)
-            self.screen.blit(lead, lead.get_rect(centerx=GRID*CELL//2, y=5))
+                # P2 điểm cao hơn -> P2 tự động nhảy lên đầu
+                self.screen.blit(p2_txt, pos_top)
+                self.screen.blit(p1_txt, pos_bottom)
 
     # UC4: Màn hình pause hiện tên người chơi
     def _draw_paused(self):
