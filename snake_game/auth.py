@@ -21,34 +21,34 @@ class Auth:
     def register(self, username: str, password: str) -> tuple[bool, str]:
         """UC1: Đăng ký tài khoản mới."""
         if not username or not password:
-            return False, "Tên đăng nhập và mật khẩu không được để trống!"
+            return False, "Username and password cannot be empty!"
         if len(username) < 3:
-            return False, "Tên đăng nhập phải có ít nhất 3 ký tự!"
+            return False, "Username must be at least 3 characters!"
         if len(password) < 4:
-            return False, "Mật khẩu phải có ít nhất 4 ký tự!"
+            return False, "Password must be at least 4 characters!"
 
         data = _load_data()
         if username in data["users"]:
-            return False, f"Tên đăng nhập '{username}' đã tồn tại!"
+            return False, f"Username '{username}' already exists!"
 
         data["users"][username] = {
             "password": _hash_password(password),
             "high_score": 0
         }
         _save_data(data)
-        return True, f"Đăng ký thành công! Chào mừng {username}!"
+        return True, f"Registration successful! Welcome {username}!"
 
     def login(self, username: str, password: str) -> tuple[bool, str]:
         """UC2: Đăng nhập."""
         if not username or not password:
-            return False, "Vui lòng nhập tên đăng nhập và mật khẩu!"
+            return False, "Please enter username and password!"
 
         data = _load_data()
         if username not in data["users"]:
-            return False, "Tài khoản không tồn tại!"
+            return False, "Account does not exist!"
 
         stored_hash = data["users"][username]["password"]
         if stored_hash != _hash_password(password):
-            return False, "Mật khẩu không đúng!"
+            return False, "Incorrect password!"
 
-        return True, f"Đăng nhập thành công! Chào {username}!"
+        return True, f"Login successful! Welcome {username}!"

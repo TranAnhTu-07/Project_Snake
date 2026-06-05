@@ -41,7 +41,7 @@ class Menu:
         rect = pygame.Rect(100, y, 400, 40)
         pygame.draw.rect(self.screen, DARK, rect, border_radius=6)
         pygame.draw.rect(self.screen, color, rect, 2, border_radius=6)
-        masked = "*" * len(value) if "ật" in prompt else value
+        masked = "*" * len(value) if "Password" in prompt else value
         txt = self.font_small.render(masked, True, WHITE)
         self.screen.blit(txt, (rect.x + 8, rect.y + 8))
         return rect
@@ -63,11 +63,11 @@ class Menu:
             self.screen.blit(title, title.get_rect(centerx=300, y=60))
 
             mx, my = pygame.mouse.get_pos()
-            self._input_box("Tên đăng nhập", 200, username, active_field == "username")
-            self._input_box("Mật khẩu",      280, password, active_field == "password")
+            self._input_box("Username", 200, username, active_field == "username")
+            self._input_box("Password",      280, password, active_field == "password")
 
-            self._draw_button("Đăng nhập",  btn_login,    (30, 120, 200), btn_login.collidepoint(mx, my))
-            self._draw_button("Đăng ký",    btn_register, (60, 160, 60),  btn_register.collidepoint(mx, my))
+            self._draw_button("Login",  btn_login,    (30, 120, 200), btn_login.collidepoint(mx, my))
+            self._draw_button("Register",    btn_register, (60, 160, 60),  btn_register.collidepoint(mx, my))
 
             if message:
                 msg_surf = self.font_small.render(message, True, msg_color)
@@ -118,15 +118,15 @@ class Menu:
             self.screen.fill((30,  30,  30)) # Màu DARK
             title = self.font_big.render("SNAKE", True, (0, 200, 80))
             self.screen.blit(title, title.get_rect(centerx=300, y=70))
-            user_lbl = self.font_small.render(f"Xin chào, {username}!", True, (255, 220, 0))
+            user_lbl = self.font_small.render(f"Hello, {username}!", True, (255, 220, 0))
             self.screen.blit(user_lbl, user_lbl.get_rect(centerx=300, y=152))
 
             mx, my = pygame.mouse.get_pos()
-            self._draw_button("Chơi 1 người",   btn_play1, (30,140,60),  btn_play1.collidepoint(mx,my))
-            self._draw_button("Chơi 2 người",   btn_play2, (20,80,180),  btn_play2.collidepoint(mx,my))
-            self._draw_button("Bảng xếp hạng",     btn_board, (140,80,20),  btn_board.collidepoint(mx,my))
-            self._draw_button("Đăng xuất",          btn_out,   (60,60,160),  btn_out.collidepoint(mx,my))
-            self._draw_button("Thoát",              btn_quit,  (160,30,30),  btn_quit.collidepoint(mx,my))
+            self._draw_button("1 Player",   btn_play1, (30,140,60),  btn_play1.collidepoint(mx,my))
+            self._draw_button("2 Players",   btn_play2, (20,80,180),  btn_play2.collidepoint(mx,my))
+            self._draw_button("Leaderboard",     btn_board, (140,80,20),  btn_board.collidepoint(mx,my))
+            self._draw_button("Logout",          btn_out,   (60,60,160),  btn_out.collidepoint(mx,my))
+            self._draw_button("Quit",              btn_quit,  (160,30,30),  btn_quit.collidepoint(mx,my))
 
             pygame.display.flip()
             self.clock.tick(60)
@@ -151,16 +151,16 @@ class Menu:
 
         while True:
             self.screen.fill((30,  30,  30)) # DARK
-            title = self.font_mid.render("Chế độ 2 người", True, (0, 220, 220)) # CYAN
+            title = self.font_mid.render("2 Players", True, (0, 220, 220)) # CYAN
             self.screen.blit(title, title.get_rect(centerx=300, y=80))
 
             # Hướng dẫn phím
             font_sm = self.font_small
-            self.screen.blit(font_sm.render(f"Người 1: {username1}", True, (100,255,120)), (100,160))
-            self.screen.blit(font_sm.render("Điều khiển: WASD", True, (100,255,120)), (100,185))
+            self.screen.blit(font_sm.render(f"Player 1: {username1}", True, (100,255,120)), (100,160))
+            self.screen.blit(font_sm.render("Controls: WASD", True, (100,255,120)), (100,185))
             pygame.draw.line(self.screen, (180, 180, 180), (80,220),(520,220), 1)
-            self.screen.blit(font_sm.render("Tên người chơi 2:", True, (255, 255, 255)), (100,240))
-            self.screen.blit(font_sm.render("Điều khiển: ↑ ↓ ← →", True, (100,180,255)), (100,265))
+            self.screen.blit(font_sm.render("Player 2 Name:", True, (255, 255, 255)), (100,240))
+            self.screen.blit(font_sm.render("Controls: Arrows", True, (100,180,255)), (100,265))
 
             # Input box P2
             rect2 = pygame.Rect(100, 305, 400, 40)
@@ -183,14 +183,14 @@ class Menu:
                 if event.type == pygame.QUIT: return None
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     if btn_ok.collidepoint(event.pos):
-                        if not name2.strip(): message = "Vui lòng nhập tên người chơi 2!"
-                        elif name2.strip() == username1: message = "Tên không được trùng với người chơi 1!"
+                        if not name2.strip(): message = "Please enter Player 2's name!"
+                        elif name2.strip() == username1: message = "Name cannot be the same as Player 1!"
                         else: return name2.strip()
                     elif btn_back.collidepoint(event.pos): return None
                 if event.type == pygame.KEYDOWN:
                     if event.key == pygame.K_RETURN:
                         if name2.strip() and name2.strip() != username1: return name2.strip()
-                        else: message = "Tên không hợp lệ!"
+                        else: message = "Invalid name!"
                     elif event.key == pygame.K_BACKSPACE: name2 = name2[:-1]
                     elif event.key == pygame.K_ESCAPE: return None
                     else:
@@ -207,14 +207,14 @@ class Menu:
 
         while True:
             self.screen.fill(DARK)
-            title = self.font_big.render("Độ khó", True, GREEN)
+            title = self.font_big.render("Difficulty", True, GREEN)
             self.screen.blit(title, title.get_rect(centerx=300, y=130))
 
             mx, my = pygame.mouse.get_pos()
-            self._draw_button("Dễ",    btn_easy,   (30, 160, 60),  btn_easy.collidepoint(mx, my))
-            self._draw_button("Trung bình", btn_medium, (180, 140, 0), btn_medium.collidepoint(mx, my))
-            self._draw_button("Khó",   btn_hard,   (180, 40, 40),  btn_hard.collidepoint(mx, my))
-            self._draw_button("Quay lại", btn_back, (70, 70, 70),   btn_back.collidepoint(mx, my))
+            self._draw_button("Easy",    btn_easy,   (30, 160, 60),  btn_easy.collidepoint(mx, my))
+            self._draw_button("Medium", btn_medium, (180, 140, 0), btn_medium.collidepoint(mx, my))
+            self._draw_button("Hard",   btn_hard,   (180, 40, 40),  btn_hard.collidepoint(mx, my))
+            self._draw_button("Back", btn_back, (70, 70, 70),   btn_back.collidepoint(mx, my))
 
             pygame.display.flip()
             self.clock.tick(60)

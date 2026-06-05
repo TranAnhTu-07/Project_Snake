@@ -24,14 +24,14 @@ WALL    = (110, 110, 110)
 CELL = 30
 GRID = 20
 
-# Điều khiển player 1: Arrow keys
+# Điều khiển player 1: WASD
 P1_KEYS = {
     pygame.K_w: "up",
     pygame.K_s: "down",
     pygame.K_a: "left",
     pygame.K_d: "right",
 }
-# Điều khiển player 2: WASD
+# Điều khiển player 2: Arrow keys
 P2_KEYS = {
     pygame.K_UP:    "up",
     pygame.K_DOWN:  "down",
@@ -42,8 +42,8 @@ P2_KEYS = {
 # Tốc độ cơ bản theo độ khó
 BASE_SPEED = {
     "easy":   0.14,
-    "medium": 0.09,
-    "hard":   0.05,
+    "medium": 0.11,
+    "hard":   0.08,
 }
 
 def resource_path(relative_path):
@@ -135,7 +135,7 @@ class Game:
     def _calc_speed(self):
         total = self.snake1.score + (self.snake2.score if self.mode == "two_player" else 0)
         # Mỗi 5 điểm giảm 0.005s, tối thiểu = base/3
-        speed = self.base_delay - (total // 5) * 0.005
+        speed = self.base_delay - (total // 4) * 0.01
         return max(speed, self.base_delay / 3)
 
     # ── Reset ────────────────────────────────────────────────────
@@ -357,7 +357,7 @@ class Game:
         if self.mode == "single":
             # [Bước 10.1.5] Nếu đang ở chế độ 1 người chơi, hệ thống đồng thời hiển thị điểm cao nhất hiện có.
             hud = self.font_small.render(
-                f"🎮 {self.username}  Score: {self.snake1.score}   Best: {self.scorer.get_high_score(self.username)}   [{self.difficulty.upper()}]",
+                f" {self.username}  Score: {self.snake1.score}   Best: {self.scorer.get_high_score(self.username)}   [{self.difficulty.upper()}]",
                 True, WHITE)
             self.screen.blit(hud, (5, 5))
         else:
@@ -429,7 +429,7 @@ class Game:
         pygame.draw.rect(self.screen,(60,60,160),(panel_x,panel_y,panel_w,panel_h),2,border_radius=16)
 
         pulse = int(math.sin(self._pause_tick*0.06)*27+228)
-        title = pygame.font.SysFont('sans',52,bold=True).render("PAUSED",True,(pulse,int(pulse*0.85),0))
+        title = pygame.font.SysFont('arial',52,bold=True).render("PAUSED",True,(pulse,int(pulse*0.85),0))
         self.screen.blit(title, title.get_rect(centerx=CX, y=panel_y+20))
 
         # UC4: Hiện tên người chơi
@@ -445,8 +445,8 @@ class Game:
         line_y = panel_y + 140
         pygame.draw.line(self.screen,(50,50,120),(panel_x+24,line_y),(panel_x+panel_w-24,line_y),1)
 
-        font_key   = pygame.font.SysFont('sans',20,bold=True)
-        font_label = pygame.font.SysFont('sans',20)
+        font_key   = pygame.font.SysFont('arial',20,bold=True)
+        font_label = pygame.font.SysFont('arial',20)
 
         def draw_hint(key_text, desc_text, y):
             key_surf = font_key.render(key_text, True, (20,20,20))
@@ -457,8 +457,8 @@ class Game:
             desc_surf = font_label.render(desc_text, True,(200,200,220))
             self.screen.blit(desc_surf,(kx+kw+14,y+4))
 
-        draw_hint("P",   "Tiếp tục",  panel_y+160)
-        draw_hint("ESC", "Về Menu",   panel_y+200)
+        draw_hint("P",   "Resume",  panel_y+160)
+        draw_hint("ESC", "Main Menu",   panel_y+200)
 
     # UC7: Game over hiện điểm cả 2 người
     def _draw_game_over(self):
@@ -485,10 +485,10 @@ class Game:
         # Title
         if self.mode == "two_player":
             if self._winner == "p1":
-                title_str = f"🏆  {self.snake1.name} THẮNG!"
+                title_str = f"  {self.snake1.name} WIN!"
                 title_col = (100,255,120)
             elif self._winner == "p2":
-                title_str = f"🏆  {self.snake2.name} THẮNG!"
+                title_str = f"  {self.snake2.name} WIN!"
                 title_col = (100,180,255)
             else:
                 title_str = "HOÀ!"
@@ -497,15 +497,15 @@ class Game:
             title_str = "GAME OVER"
             title_col = (220,50,80)
 
-        font_title = pygame.font.SysFont('sans',46,bold=True)
+        font_title = pygame.font.SysFont('arial',46,bold=True)
         title = font_title.render(title_str, True, title_col)
         self.screen.blit(title, title.get_rect(centerx=CX, y=panel_y+20))
 
         line_y = panel_y + 82
         pygame.draw.line(self.screen,(60,60,100),(panel_x+20,line_y),(panel_x+panel_w-20,line_y),1)
 
-        font_label = pygame.font.SysFont('sans',18)
-        font_value = pygame.font.SysFont('sans',30,bold=True)
+        font_label = pygame.font.SysFont('arial',18)
+        font_value = pygame.font.SysFont('arial',30,bold=True)
 
         # UC7: Điểm số
         if self.mode == "single":
@@ -521,7 +521,7 @@ class Game:
             self.screen.blit(hs_lbl, hs_lbl.get_rect(centerx=CX+90, y=panel_y+96))
             self.screen.blit(hs_val, hs_val.get_rect(centerx=CX+90, y=panel_y+118))
             if self.new_record:
-                badge_font = pygame.font.SysFont('sans',14,bold=True)
+                badge_font = pygame.font.SysFont('arial',14,bold=True)
                 badge = badge_font.render("NEW RECORD",True,(20,20,20))
                 bw = badge.get_width()+16
                 bx = CX+90-bw//2
@@ -548,7 +548,7 @@ class Game:
                 self.screen.blit(sc_val,   sc_val.get_rect(centerx=cx,   y=panel_y+136))
                 self.screen.blit(best_lbl, best_lbl.get_rect(centerx=cx, y=panel_y+172))
                 if is_new:
-                    badge_font = pygame.font.SysFont('sans',13,bold=True)
+                    badge_font = pygame.font.SysFont('arial',13,bold=True)
                     badge = badge_font.render("NEW RECORD",True,(20,20,20))
                     bw = badge.get_width()+12
                     bx = cx-bw//2
@@ -569,14 +569,14 @@ class Game:
             color = hover if rect.collidepoint(mx,my) else base
             pygame.draw.rect(self.screen,color,rect,border_radius=10)
             pygame.draw.rect(self.screen,WHITE,rect,1,border_radius=10)
-            txt = pygame.font.SysFont('sans',19,bold=True).render(label,True,WHITE)
+            txt = pygame.font.SysFont('arial',19,bold=True).render(label,True,WHITE)
             self.screen.blit(txt, txt.get_rect(center=rect.center))
 
-        draw_btn(btn_restart,"CHƠI LẠI",(30,130,60),(40,180,80))
+        draw_btn(btn_restart,"RESTART",(30,130,60),(40,180,80))
         draw_btn(btn_menu,"MAIN MENU",(50,50,140),(70,70,190))
 
-        hint_font = pygame.font.SysFont('sans',14)
-        hint = hint_font.render("SPACE  chơi lại      ESC  về menu", True,(90,90,120))
+        hint_font = pygame.font.SysFont('arial',14)
+        hint = hint_font.render("SPACE  restart      ESC  back to menu", True,(90,90,120))
         self.screen.blit(hint, hint.get_rect(centerx=CX, y=panel_y+panel_h-32))
 
     # ── Event handlers ───────────────────────────────────────────
