@@ -169,6 +169,7 @@ class Game:
         self._countdown   = 0  
         self._countdown_timer = 0.0
         self._winner      = None
+        self.score_popups = []
 
     # UC9: Sinh mồi tự động
     def _spawn_foods(self):
@@ -225,6 +226,13 @@ class Game:
                 if [food.x, food.y] == head:
                     snake.score += food.value
                     snake.grow += food.value
+                    # Hiệu ứng điểm thưởng bay lên
+                    px = food.x * CELL + CELL // 2
+                    py = food.y * CELL + CELL // 2
+                    label = f"+{food.value}"
+                    color = ORANGE if food.big else (120, 255, 160)
+                    duration = random.uniform(0.8, 1.2)
+                    self.score_popups.append([px, py, label, color, 0.0, duration])
                     # xóa mồi đã ăn
                     self.foods.remove(food)
                     # kiểm tra còn mồi lớn không
@@ -346,6 +354,9 @@ class Game:
         if self.snake2:
             self.snake2.draw(self.screen)
 
+        # Hiệu ứng điểm thưởng
+        self._draw_score_popups()
+
         # HUD
         self._draw_hud()
 
@@ -394,6 +405,28 @@ class Game:
                 # P2 điểm cao hơn -> P2 tự động nhảy lên đầu
                 self.screen.blit(p2_txt, pos_top)
                 self.screen.blit(p1_txt, pos_bottom)
+
+    def _draw_score_popups(self):
+        """Vẽ và cập nhật hiệu ứng điểm thưởng bay lên."""
+        dt = self.clock.get_time() / 1000.0
+        remaining = []
+        for popup in self.score_popups:
+            px, py, text, color, age, max_age = popup
+            age += dt
+            if age >= max_age:
+                continue  # hết thời gian -> xóa
+            # Bay lên 40px trong suốt thời gian hiệu ứng
+            progress = age / max_age          # 0.0 -> 1.0
+            cur_y = py - progress * 40
+            # Mờ dần ở nửa sau
+            alpha = 255 if progress < 0.5 else int(255 * (1.0 - progress) * 2)
+            surf = self.font_mid.render(text, True, color)
+            surf.set_alpha(alpha)
+            rect = surf.get_rect(center=(int(px), int(cur_y)))
+            self.screen.blit(surf, rect)
+            popup[4] = age  # cập nhật age
+            remaining.append(popup)
+        self.score_popups = remaining
 
     # UC4: Màn hình pause hiện tên người chơi
     def _draw_paused(self):
