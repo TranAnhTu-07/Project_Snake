@@ -18,7 +18,7 @@
     },
     "tu123456": {
       "password": "5a70b0aa90df15fe320482b585cc3d6a3fc024310b2565b32e1aed9d8df51d39",
-      "high_score": 0
+      "high_score": 1
     },
     "ponzy": {
       "password": "03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4",
@@ -35,6 +35,10 @@
     "d": {
       "password": "",
       "high_score": 1
+    },
+    "TestUser": {
+      "password": "",
+      "high_score": 50
     }
   }
 }
