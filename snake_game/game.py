@@ -428,7 +428,7 @@ class Game:
             remaining.append(popup)
         self.score_popups = remaining
 
-    # UC4: Màn hình pause hiện tên người chơi
+    # UC4 Tạm dừng
     def _draw_paused(self):
         W, H  = self.screen.get_size()
         CX, CY = W//2, H//2
@@ -465,7 +465,7 @@ class Game:
         title = pygame.font.SysFont('arial',52,bold=True).render("PAUSED",True,(pulse,int(pulse*0.85),0))
         self.screen.blit(title, title.get_rect(centerx=CX, y=panel_y+20))
 
-        # UC4: Hiện tên người chơi
+        #[UC4 - Bước 4.1.7] Hệ thống hiển thị tên người chơi (username) trên màn hình tạm dừng.
         if self.mode == "single":
             name_txt = self.font_mid.render(f"Người chơi: {self.username}", True, GREEN)
             self.screen.blit(name_txt, name_txt.get_rect(centerx=CX, y=panel_y+88))
@@ -540,7 +540,8 @@ class Game:
         font_label = pygame.font.SysFont('arial',18)
         font_value = pygame.font.SysFont('arial',30,bold=True)
 
-        # UC7: Điểm số
+        # [UC7 - Bước 7.1.7] Hệ thống hiển thị số điểm (score) đạt được trong ván chơi vừa kết thúc.
+        # [UC7 - Bước 7.1.8] Hệ thống hiển thị màn hình Game Over.
         if self.mode == "single":
             high = self.scorer.get_high_score(self.username)
             sc_lbl = font_label.render("SCORE", True,(140,140,180))
@@ -632,7 +633,8 @@ class Game:
             if event.key == pygame.K_p:
                 self.paused = not self.paused
                 if not self.paused:
-                    # UC11: đếm ngược khi tiếp tục
+                    # [UC11 - Bước 11.1.6] Hệ thống hiển thị đếm ngược 3 giây trên màn hình
+                    # trước khi trò chơi tiếp tục. Game Loop chỉ chạy lại sau khi _countdown về 0.
                     self._countdown      = 3
                     self._countdown_timer = 0.0
                     self._pause_alpha    = 0
