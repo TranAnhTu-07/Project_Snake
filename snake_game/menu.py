@@ -173,8 +173,8 @@ class Menu:
                 self.screen.blit(font_sm.render(message, True, (220, 50, 50)), (100, 355))
 
             mx, my = pygame.mouse.get_pos()
-            self._draw_button("Bắt đầu", btn_ok,   (30,140,60),  btn_ok.collidepoint(mx,my))
-            self._draw_button("Quay lại",btn_back,  (70,70,70),   btn_back.collidepoint(mx,my))
+            self._draw_button("Start", btn_ok,   (30,140,60),  btn_ok.collidepoint(mx,my))
+            self._draw_button("Back",btn_back,  (70,70,70),   btn_back.collidepoint(mx,my))
 
             pygame.display.flip()
             self.clock.tick(60)
@@ -231,34 +231,48 @@ class Menu:
                     return None
 
     # ── UC7: Leaderboard ──────────────────────────────────────────────────────
+    # ── Leaderboard ───────────────────────────────────────────────
     def show_leaderboard(self):
-        records = self.leaderboard.get_top(10)
-        btn_back = pygame.Rect(200, 530, 200, 44)
+        top_players = self.leaderboard.get_top(10)
+        btn_back = pygame.Rect(200, 520, 200, 44)
 
         while True:
             self.screen.fill(DARK)
-            title = self.font_big.render("Bảng xếp hạng", True, YELLOW)
-            self.screen.blit(title, title.get_rect(centerx=300, y=40))
+            title = self.font_big.render("Leaderboard", True, YELLOW)
+            self.screen.blit(title, title.get_rect(centerx=300, y=50))
 
-            for i, (name, score) in enumerate(records):
-                color = [YELLOW, GRAY, (205,127,50)][i] if i < 3 else WHITE
-                row = self.font_mid.render(f"{i+1:>2}. {name:<15} {score}", True, color)
-                self.screen.blit(row, (80, 110 + i * 38))
+            if not top_players:
+                msg = self.font_mid.render("No data available!", True, WHITE)
+                self.screen.blit(msg, msg.get_rect(centerx=300, y=250))
+            else:
+                for i, (name, score) in enumerate(top_players):
+                    y = 120 + i * 35
+                    # Chỉnh màu cho Top 1, 2, 3 nhìn cho xịn
+                    if i == 0: color = YELLOW       # Vàng cho Top 1
+                    elif i == 1: color = (192,192,192) # Bạc cho Top 2
+                    elif i == 2: color = (205,127,50)  # Đồng cho Top 3
+                    else: color = WHITE             # Trắng cho dân thường
 
-            if not records:
-                empty = self.font_mid.render("Chưa có dữ liệu!", True, GRAY)
-                self.screen.blit(empty, empty.get_rect(centerx=300, y=220))
+                    # TÁCH LÀM 2 PHẦN ĐỂ CĂN LỀ:
+                    # 1. Vẽ Tên (Căn trái ở tọa độ x = 140)
+                    name_lbl = self.font_mid.render(f"{i+1}. {name}", True, color)
+                    self.screen.blit(name_lbl, (140, y))
+
+                    # 2. Vẽ Điểm (Căn phải sao cho đít của chữ điểm luôn nằm ở x = 460)
+                    score_lbl = self.font_mid.render(str(score), True, color)
+                    score_rect = score_lbl.get_rect(right=460, top=y)
+                    self.screen.blit(score_lbl, score_rect)
 
             mx, my = pygame.mouse.get_pos()
-            self._draw_button("← Quay lại", btn_back, (70, 70, 70), btn_back.collidepoint(mx, my))
+            self._draw_button("Back", btn_back, (70,70,70), btn_back.collidepoint(mx,my))
+
             pygame.display.flip()
             self.clock.tick(60)
 
             for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    return
-                if event.type == pygame.MOUSEBUTTONDOWN and btn_back.collidepoint(event.pos):
-                    return
+                if event.type == pygame.QUIT: return
+                if event.type == pygame.MOUSEBUTTONDOWN:
+                    if btn_back.collidepoint(event.pos): return
                 if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
                     return
 
